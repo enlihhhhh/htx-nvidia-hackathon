@@ -12,10 +12,12 @@ from pydub import AudioSegment
 import librosa
 from utils.vad import get_speech_timestamps, collect_chunks, VadOptions
 import tempfile
+from typing import Optional
 
 
 from server import serve
 
+# Ros: Downloads pre trained model from HF, saved locally
 repo_id = "gpt-omni/mini-omni"
 snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
 
@@ -32,7 +34,7 @@ IN_CHANNELS = 1
 IN_RATE = 24000
 IN_CHUNK = 1024
 IN_SAMPLE_WIDTH = 2
-VAD_STRIDE = 0.5
+VAD_STRIDE = 0.5 # VAD = Voice Activity Detection
 
 # playing parameters
 OUT_CHANNELS = 1
@@ -40,13 +42,12 @@ OUT_RATE = 24000
 OUT_SAMPLE_WIDTH = 2
 OUT_CHUNK = 5760
 
-
 OUT_CHUNK = 20 * 4096
 OUT_RATE = 24000
 OUT_CHANNELS = 1
 
 
-def run_vad(ori_audio, sr):
+def run_vad(ori_audio, sr): # Voice Activity detection
     _st = time.time()
     try:
         audio = ori_audio
@@ -78,16 +79,17 @@ def run_vad(ori_audio, sr):
 
 def warm_up():
     frames = b"\x00\x00" * 1024 * 2  # 1024 frames of 2 bytes each
-    dur, frames, tcost = run_vad(frames, 16000)
+    # dur, frames, tcost = run_vad(frames, 16000)
+    frames_np = np.frombuffer(frames, dtype=np.int16)
+    dur, frames, tcost = run_vad(frames_np, 16000)
     print(f"warm up done, time_cost: {tcost:.3f} s")
 
 
-warm_up()
-
+warm_up() # Creates a fake silent audio buffer for initialisation
 
 @dataclass
-class AppState:
-    stream: np.ndarray | None = None
+class AppState: # Keep track of ongoing conversation and audio streams
+    stream: Optional[np.ndarray] = None
     sampling_rate: int = 0
     pause_detected: bool = False
     started_talking: bool =  False
@@ -103,17 +105,17 @@ def determine_pause(audio: np.ndarray, sampling_rate: int, state: AppState) -> b
     dur_vad, _, time_vad = run_vad(temp_audio, sampling_rate)
     duration = len(audio) / sampling_rate
 
-    if dur_vad > 0.5 and not state.started_talking:
+    if dur_vad > 0.5 and not state.started_talking: 
         print("started talking")
         state.started_talking = True
         return False
 
     print(f"duration_after_vad: {dur_vad:.3f} s, time_vad: {time_vad:.3f} s")
 
-    return (duration - dur_vad) > 1
+    return (duration - dur_vad) > 5 # if silence > 5 sec, then pause is detected, controls when to send audio to server
 
 
-def speaking(audio_bytes: str):
+def speaking(audio_bytes: str): # Send base encoded audio bytes to model
 
     base64_encoded = str(base64.b64encode(audio_bytes), encoding="utf-8")
     files = {"audio": base64_encoded}
@@ -195,8 +197,6 @@ def response(state: AppState):
     yield None, AppState(conversation=state.conversation)
 
 
-
-
 def start_recording_user(state: AppState):
     if not state.stopped:
         return gr.Audio(recording=True)
@@ -213,7 +213,7 @@ with gr.Blocks() as demo:
     state = gr.State(value=AppState())
 
     stream = input_audio.stream(
-        process_audio,
+        process_audio, # use VAD to detect pause
         [input_audio, state],
         [input_audio, state],
         stream_every=0.50,
@@ -236,4 +236,4 @@ with gr.Blocks() as demo:
                 [state, input_audio], cancels=[respond, restart])
 
 
-demo.launch()
+demo.launch(share=True)

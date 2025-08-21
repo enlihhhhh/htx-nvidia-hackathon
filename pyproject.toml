@@ -1,0 +1,25 @@
+[project]
+name = "omni-mini"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.116.1",
+    "fire>=0.7.0",
+    "flask==3.0.3",
+    "gradio>=4.44.1",
+    "librosa==0.10.2.post1",
+    "litgpt==0.4.3",
+    "onnxruntime==1.19.0",
+    "openai-whisper>=20250625",
+    "pydantic==2.10.6",
+    "pydub==0.25.1",
+    "snac==1.2.0",
+    "soundfile==0.12.1",
+    "streamlit==1.37.1",
+    "tokenizers==0.19.1",
+    "torch==2.3.1",
+    "torchaudio==2.3.1",
+    "torchvision==0.18.1",
+]
