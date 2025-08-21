@@ -10,7 +10,6 @@ streamlit==1.37.1
 # PyAudio==0.2.14
 pydub==0.25.1
 onnxruntime==1.19.0
-# numpy==1.26.3
 gradio
 fastapi
 librosa==0.10.2.post1
