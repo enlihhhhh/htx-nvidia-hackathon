@@ -52,21 +52,7 @@ OUT_CHANNELS = 1
 
 SAMPLE_RATE = 16000
 
-"""
-    riva_client_path = "stt_client.py"
-    api_key = os.environ.get("RIVA_API_KEY")  
-
-    print(api_key)
-    # Load example WAV file
-    # with open("example.wav", "rb") as f:
-    #    audio_bytes = f.read()
-    
-    audio_bytes = "sample.wav"
-
-    transcript = riva_offline_transcribe(audio_bytes, api_key, riva_client_path)
-    print(transcript)
-"""
-
+# TODO <Ros>: Reimplement but using the new client wrapper
 def riva_client(wav_file: str) -> str:
     api_key = os.environ.get("RIVA_API_KEY")
     print(f"RIVA API KEY: {api_key}")
