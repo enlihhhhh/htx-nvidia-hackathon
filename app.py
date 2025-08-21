@@ -19,7 +19,7 @@ from server import serve
 
 # Ros: Downloads pre trained model from HF, saved locally
 repo_id = "gpt-omni/mini-omni"
-snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
+#snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
 
 IP = "0.0.0.0"
 PORT = 60808
@@ -45,6 +45,8 @@ OUT_CHUNK = 5760
 OUT_CHUNK = 20 * 4096
 OUT_RATE = 24000
 OUT_CHANNELS = 1
+
+SAMPLE_RATE = 16000
 
 
 def run_vad(ori_audio, sr): # Voice Activity detection
@@ -173,6 +175,8 @@ def response(state: AppState):
         sample_width=state.stream.dtype.itemsize,
         channels=(1 if len(state.stream.shape) == 1 else state.stream.shape[1]),
     )
+    segment = segment.set_frame_rate(SAMPLE_RATE)
+    segment = segment.set_channels(1)
     segment.export(audio_buffer, format="wav")
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
