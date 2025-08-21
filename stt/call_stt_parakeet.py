@@ -3,11 +3,11 @@ import tempfile
 import os
 from dotenv import load_dotenv
 
-def riva_offline_transcribe(audio_bytes: str, api_key: str, riva_client_path: str) -> str:
+def riva_offline_transcribe(audio: str, api_key: str, riva_client_path: str) -> str:
     """
     Calls the NVIDIA Riva offline ASR client via subprocess.
 
-    :param audio_bytes: Raw WAV audio bytes.
+    :param audio: WAV Audio
     :param api_key: API key for Riva NGC access.
     :param riva_client_path: Path to transcribe_file_offline.py
     :return: Transcription text (stdout from Riva client)
@@ -19,7 +19,6 @@ def riva_offline_transcribe(audio_bytes: str, api_key: str, riva_client_path: st
     #    tmp_file_path = tmp_file.name
 
     # Build command
-    tmp_file_path = audio_bytes
 
     # Using Try API
     cmd = [
@@ -31,7 +30,7 @@ def riva_offline_transcribe(audio_bytes: str, api_key: str, riva_client_path: st
         "--language-code", "en-US",
         "--word-time-offsets",
         "--automatic-punctuation",
-        "--input-file", tmp_file_path
+        "--input-file", audio
     ]
 
     try:
@@ -40,7 +39,6 @@ def riva_offline_transcribe(audio_bytes: str, api_key: str, riva_client_path: st
         transcription = result.stdout
     except subprocess.CalledProcessError as e:
         transcription = e.stderr
-    # TODO <Ros> : reinstate del of tmpfile
     #finally:
         # Clean up temporary audio file
         #os.remove(tmp_file_path)
@@ -59,7 +57,7 @@ if __name__ == "__main__":
     # with open("example.wav", "rb") as f:
     #    audio_bytes = f.read()
     
-    audio_bytes = "sample.wav"
+    audio = "sample.wav"
 
-    transcript = riva_offline_transcribe(audio_bytes, api_key, riva_client_path)
+    transcript = riva_offline_transcribe(audio, api_key, riva_client_path)
     print(transcript)

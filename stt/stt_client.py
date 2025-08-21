@@ -25,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if args.input_file:
         args.input_file = args.input_file.expanduser()
+
     return args
 
 def write_seglst(words, seglst_output_file):
@@ -123,13 +124,11 @@ def main() -> None:
                     for word_info in res.alternatives[0].words:
                         words.append(word_info)
 
-            print("Final transcript:", final_transcript)
-
             # TODO <Ros> : Currently does not return anything on diarized content
             if speaker_diarization and len(words) > 0 and seglst_output_file is not None:
                 write_seglst(words, seglst_output_file)
 
-            return final_transcript
+            print(final_transcript)
 
     except grpc.RpcError as e:
         print(e.details())

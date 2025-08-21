@@ -1,0 +1,84 @@
+# List available models. (default: False)
+list-models: false
+
+# Output seglst file for speaker diarization. (default: False)
+output-seglst: false
+
+# URI to GRPC server endpoint. (default: localhost:50051)
+server: "localhost:50051"
+
+# Path to SSL root certificates file. (default: None)
+ssl-root-cert: null
+
+# Path to SSL client certificates file. (default: None)
+ssl-client-cert: null
+
+# Path to SSL client key file. (default: None)
+ssl-client-key: null
+
+# Boolean to control if SSL/TLS encryption should be used. (default: False)
+use-ssl: false
+
+# Send HTTP Header(s) to server (default: None)
+metadata: null
+
+# Send GRPC options to server (default: None)
+options: null
+
+# Maximum message length for GRPC server. (default: 67108864)
+max-message-length: 67108864
+
+# Option to output word timestamps. (default: False)
+word-time-offsets: false
+
+# Maximum number of alternative transcripts to return (up to limit configured on server). (default: 1)
+max-alternatives: 1
+
+# Flag that controls the profanity filtering in the generated transcripts (default: False)
+profanity-filter: false
+
+# Flag that controls if transcript should be automatically punctuated (default: False)
+automatic-punctuation: false
+
+# If specified, text inverse normalization will be applied (default: False)
+no-verbatim-transcripts: false
+
+# Language code of the model to be used. (default: en-US)
+language-code: "en-US"
+
+# Model name to be used. (default: )
+model-name: null
+
+# Words to boost when decoding. Can be used multiple times to boost multiple words. (default: None)
+boosted-lm-words: null
+
+# Recommended range for the boost score is 20 to 100. The higher the boost score, 
+# the more biased the ASR engine is towards this word. (default: 4.0)
+boosted-lm-score: 4.0
+
+# Flag that controls if speaker diarization should be performed (default: False)
+speaker-diarization: false
+
+# Max number of speakers to detect when performing speaker diarization (default: 3)
+diarization-max-speakers: 3
+
+# Value (in milliseconds) to detect and initiate start of speech utterance (default: -1)
+start-history: -1
+
+# Threshold value for detecting the start of speech utterance (default: -1.0)
+start-threshold: -1.0
+
+# Value (in milliseconds) to detect end of utterance and reset decoder (default: -1)
+stop-history: -1
+
+# Threshold value for detecting the end of speech utterance (default: -1.0)
+stop-threshold: -1.0
+
+# Value (in milliseconds) to detect end of utterance for the 1st pass and generate an intermediate final transcript (default: -1)
+stop-history-eou: -1
+
+# Threshold value for likelihood of blanks before detecting end of utterance (default: -1.0)
+stop-threshold-eou: -1.0
+
+# Custom configurations to be sent to the server as key value pairs <key:value,key:value,...> (default: )
+custom-configuration: {}

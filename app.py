@@ -13,9 +13,13 @@ import librosa
 from utils.vad import get_speech_timestamps, collect_chunks, VadOptions
 import tempfile
 from typing import Optional
-
-
+from dotenv import load_dotenv
+import os
 from server import serve
+
+from stt import call_stt_parakeet
+
+load_dotenv()
 
 # Ros: Downloads pre trained model from HF, saved locally
 repo_id = "gpt-omni/mini-omni"
@@ -48,6 +52,28 @@ OUT_CHANNELS = 1
 
 SAMPLE_RATE = 16000
 
+"""
+    riva_client_path = "stt_client.py"
+    api_key = os.environ.get("RIVA_API_KEY")  
+
+    print(api_key)
+    # Load example WAV file
+    # with open("example.wav", "rb") as f:
+    #    audio_bytes = f.read()
+    
+    audio_bytes = "sample.wav"
+
+    transcript = riva_offline_transcribe(audio_bytes, api_key, riva_client_path)
+    print(transcript)
+"""
+
+def riva_client(wav_file: str) -> str:
+    api_key = os.environ.get("RIVA_API_KEY")
+    print(f"RIVA API KEY: {api_key}")
+    audio = wav_file
+    riva_client_path = "stt/stt_client.py"
+    transcript = call_stt_parakeet.riva_offline_transcribe(audio, api_key, riva_client_path)
+    return transcript
 
 def run_vad(ori_audio, sr): # Voice Activity detection
     _st = time.time()
@@ -186,18 +212,23 @@ def response(state: AppState):
                                 "content": {"path": f.name,
                                 "mime_type": "audio/wav"}})
     
-    output_buffer = b""
+    transcript = riva_client(wav_file=f.name)
 
-    for mp3_bytes in speaking(audio_buffer.getvalue()):
-        output_buffer += mp3_bytes
-        yield mp3_bytes, state
+    state.conversation.append({
+        "role": "assistant",
+        "content": transcript
+    })
 
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-        f.write(output_buffer)
+    #for mp3_bytes in speaking(audio_buffer.getvalue()):
+    #    output_buffer += mp3_bytes
+    #    yield mp3_bytes, state
+
+    #with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+    #    f.write(output_buffer)
     
-    state.conversation.append({"role": "assistant",
-                    "content": {"path": f.name,
-                                "mime_type": "audio/mp3"}})
+    #state.conversation.append({"role": "assistant",
+    #                "content": {"path": f.name,
+    #                            "mime_type": "audio/mp3"}})
     yield None, AppState(conversation=state.conversation)
 
 
