@@ -16,6 +16,13 @@ from typing import Optional
 
 
 from server import serve
+from nvidia_rag import NvidiaRAG, NvidiaRAGIngestor
+
+rag = NvidiaRAG()
+ingestor = NvidiaRAGIngestor()
+
+docs_lib = "docs_lib"
+milvus_db_url = "http://localhost:19530"
 
 # Ros: Downloads pre trained model from HF, saved locally
 repo_id = "gpt-omni/mini-omni"
@@ -201,7 +208,45 @@ def start_recording_user(state: AppState):
     if not state.stopped:
         return gr.Audio(recording=True)
 
+async def process_uploaded_file(file_objs):
+    """
+    Processes the uploaded file and returns a preview of its content.
+    """
+    if not file_objs:
+        return "No file uploaded."
+
+    try:
+        response = await ingestor.upload_documents(
+            collection_name=docs_lib,
+            vdb_endpoint=milvus_db_url,
+            blocking=False,
+            split_options={"chunk_size": 512, "chunk_overlap": 150},
+            filepaths=[file_obj.name for file_obj in file_objs],
+            generate_summary=False,
+        )
+        
+        return response
+    except Exception as e:
+        return f"Error processing file: {e}"
+
+async def generate_response(user_input):
+    response = await ingestor.status(
+        task_id=user_input
+    )
+
+    return response
+
 with gr.Blocks() as demo:
+    output_text = gr.Textbox(label="Upload Status")
+    upload_button = gr.UploadButton("Click to Upload a File", file_types=[".pdf", ".docx"], file_count="multiple")
+    upload_button.upload(process_uploaded_file, inputs=upload_button, outputs=output_text)
+    
+    input_box = gr.Textbox(label="Enter Task ID")
+    output_box = gr.Textbox(label="Task ID Status", interactive=False)
+    btn = gr.Button("Get Task Status")
+    
+    btn.click(fn=generate_response, inputs=input_box, outputs=output_box)
+
     with gr.Row():
         with gr.Column():
             input_audio = gr.Audio(
@@ -235,5 +280,10 @@ with gr.Blocks() as demo:
     cancel.click(lambda: (AppState(stopped=True), gr.Audio(recording=False)), None,
                 [state, input_audio], cancels=[respond, restart])
 
+resp = ingestor.create_collection(
+    collection_name=docs_lib,
+    vdb_endpoint=milvus_db_url,
+)
+print(resp)
 
 demo.launch(share=True)
