@@ -30,6 +30,7 @@ dependencies = [
     "librosa==0.11.0",
     "litgpt",
     "loguru>=0.7.3",
+    "nvidia-rag[all]",
     "omegaconf==2.3.0",
     "onnxruntime==1.19.0",
     "openai-whisper>=20250625",
