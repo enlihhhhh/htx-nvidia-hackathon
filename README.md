@@ -7,8 +7,27 @@
 
 .... to be added
 
+### Extra dependancies to install
+```bash
+# # Install these dependenacies first
+# uv pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu121
+# uv pip install flash_attn-2.8.2+cu12torch24cxx11abifalse-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+
+# # Then, run pip install requirements without the above packages
+# uv pip install requirements.txt
+
+# # Finally, install Kimi-Audio
+# uv pip install git+https://github.com/MoonshotAI/Kimi-Audio.git
+# ```
+
+Run this first to set up venv
 ```bash
 uv run app.py
+```
+
+Then, run this to install the Kimi Audio Package
+```bash
+uv pip install git+https://github.com/MoonshotAI/Kimi-Audio.git
 ```
 
 ## Contributions
