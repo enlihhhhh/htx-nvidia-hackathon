@@ -210,11 +210,43 @@ def response(state: AppState):
                                 "mime_type": "audio/wav"}})
     
     transcript = riva_client(wav_file=f.name)
+    print(transcript)
+
+    citations = rag.search(
+        query=transcript,
+        collection_names=[docs_lib],
+        reranker_top_k=10,
+        vdb_top_k=100,
+        # embedding_endpoint="http://localhost:9080/v1",
+        # embedding_model="nvidia/llama-3.2-nv-embedqa-1b-v2",
+        # reranker_endpoint="http://localhost:1976/v1",
+        # [Optional]: Uncomment to filter the documents based on the metadata, ensure that the metadata schema is created with the same fields with create_collection
+        # filter_expr='content_metadata["meta_field_1"] == "multimodal document 1"'
+    )
+
+    if not citations or not hasattr(citations, 'results') or not citations.results:
+        print("No citations found.")
+        return ""
+
+    citations_str = ""
+    for idx, citation in enumerate(citations.results):
+        # If using pydantic models, citation fields may be attributes, not dict keys
+        doc_type = getattr(citation, 'document_type', 'text')
+        content = getattr(citation, 'content', '')
+        doc_name = getattr(citation, 'document_name', f'Citation {idx+1}')
+
+        
+        try:
+            image_bytes = base64.b64decode(content)
+            print("image citation")
+        except Exception as e:
+            citation_str = f"**Citation {idx+1}: {doc_name}** : ```\n{content}\n```"
+            citations_str = "".join([citations_str, citation_str])
 
     # TODO: At the moment it just returns the trancript
     state.conversation.append({
         "role": "assistant",
-        "content": transcript
+        "content": f"Transcript:\n{transcript}\n\nCitations:\n{citations_str}"
     })
 
     #for mp3_bytes in speaking(audio_buffer.getvalue()):
@@ -259,7 +291,6 @@ async def generate_response(user_input):
     response = await ingestor.status(
         task_id=user_input
     )
-
     return response
 
 with gr.Blocks() as demo:
