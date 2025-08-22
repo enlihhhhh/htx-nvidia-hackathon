@@ -52,21 +52,22 @@ dependencies = [
     "streamlit==1.37.1",
     "sty>=1.0.6",
     "timm>=1.0.19",
-    "tokenizers==0.19.1",
     "torch==2.4.1",
     "torchaudio==2.4.1",
     "torchdyn==1.0.6",
     "torchvision==0.19.1",
     "tqdm>=4.67.1",
-    "transformers>=4.44.2",
+    "transformers>=4.55.2",
     "ujson>=5.11.0",
     "validators>=0.35.0",
     "wget>=3.2",
+    "kimi-audio",
 ]
 
 [tool.uv.sources]
 flash-attn = { url = "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.2/flash_attn-2.8.2+cu12torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl" }
 nvidia-rag = { path = "rag", editable = true }
+kimi-audio = { git = "https://github.com/MoonshotAI/Kimi-Audio.git" }
 
 [tool.uv]
 prerelease = "allow"
