@@ -15,7 +15,7 @@ import tempfile
 from typing import Optional
 from dotenv import load_dotenv
 import os
-from server import serve
+from kimi_server import serve
 from nvidia_rag import NvidiaRAG, NvidiaRAGIngestor
 
 rag = NvidiaRAG()
@@ -29,7 +29,7 @@ from stt import stt_client
 load_dotenv()
 
 # Ros: Downloads pre trained model from HF, saved locally
-repo_id = "gpt-omni/mini-omni"
+# repo_id = "gpt-omni/mini-omni"
 #snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
 
 IP = "0.0.0.0"
@@ -144,10 +144,10 @@ def determine_pause(audio: np.ndarray, sampling_rate: int, state: AppState) -> b
     return (duration - dur_vad) > 5 # if silence > 5 sec, then pause is detected, controls when to send audio to server
 
 
-def speaking(audio_bytes: str): # Send base encoded audio bytes to model
+def speaking(audio_bytes: str, citation_str: str): # Send base encoded audio bytes to model
 
     base64_encoded = str(base64.b64encode(audio_bytes), encoding="utf-8")
-    files = {"audio": base64_encoded}
+    files = {"audio": base64_encoded, "citation": citation_str}
     with requests.post(API_URL, json=files, stream=True) as response:
         try:
             for chunk in response.iter_content(chunk_size=OUT_CHUNK):
@@ -190,7 +190,8 @@ def response(state: AppState):
     if not state.pause_detected and not state.started_talking:
         return None, AppState()
     
-    audio_buffer = io.BytesIO()
+    audio_buffer_1 = io.BytesIO() # To be fed into SLM
+    audio_buffer_2 = io.BytesIO() # To be fed into STT 
 
     segment = AudioSegment(
         state.stream.tobytes(),
@@ -198,12 +199,17 @@ def response(state: AppState):
         sample_width=state.stream.dtype.itemsize,
         channels=(1 if len(state.stream.shape) == 1 else state.stream.shape[1]),
     )
+
+
+    segment.export(audio_buffer_1, format="wav")
+
     segment = segment.set_frame_rate(SAMPLE_RATE)
     segment = segment.set_channels(1)
-    segment.export(audio_buffer, format="wav")
+
+    segment.export(audio_buffer_2, format="wav")
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-        f.write(audio_buffer.getvalue())
+        f.write(audio_buffer_2.getvalue())
     
     state.conversation.append({"role": "user",
                                 "content": {"path": f.name,
@@ -215,7 +221,7 @@ def response(state: AppState):
     citations = rag.search(
         query=transcript,
         collection_names=[docs_lib],
-        reranker_top_k=10,
+        reranker_top_k=1,
         vdb_top_k=100,
         # embedding_endpoint="http://localhost:9080/v1",
         # embedding_model="nvidia/llama-3.2-nv-embedqa-1b-v2",
@@ -225,23 +231,20 @@ def response(state: AppState):
     )
 
     if not citations or not hasattr(citations, 'results') or not citations.results:
-        print("No citations found.")
-        return ""
-
-    citations_str = ""
-    for idx, citation in enumerate(citations.results):
-        # If using pydantic models, citation fields may be attributes, not dict keys
-        doc_type = getattr(citation, 'document_type', 'text')
-        content = getattr(citation, 'content', '')
-        doc_name = getattr(citation, 'document_name', f'Citation {idx+1}')
-
-        
-        try:
-            image_bytes = base64.b64decode(content)
-            print("image citation")
-        except Exception as e:
-            citation_str = f"**Citation {idx+1}: {doc_name}** : ```\n{content}\n```"
-            citations_str = "".join([citations_str, citation_str])
+        citations_str = "No citations found."
+    else:
+        citations_str = ""
+        for idx, citation in enumerate(citations.results):
+            # If using pydantic models, citation fields may be attributes, not dict keys
+            doc_type = getattr(citation, 'document_type', 'text')
+            content = getattr(citation, 'content', '')
+            doc_name = getattr(citation, 'document_name', f'Citation {idx+1}')
+            try:
+                image_bytes = base64.b64decode(content)
+                print("image citation")
+            except Exception as e:
+                citation_str = f"**Citation {idx+1}: {doc_name}** : ```\n{content}\n```"
+                citations_str = "".join([citations_str, citation_str])
 
     # TODO: At the moment it just returns the trancript
     state.conversation.append({
@@ -249,16 +252,19 @@ def response(state: AppState):
         "content": f"Transcript:\n{transcript}\n\nCitations:\n{citations_str}"
     })
 
-    #for mp3_bytes in speaking(audio_buffer.getvalue()):
-    #    output_buffer += mp3_bytes
-    #    yield mp3_bytes, state
-
-    #with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-    #    f.write(output_buffer)
+    output_buffer = b""
     
-    #state.conversation.append({"role": "assistant",
-    #                "content": {"path": f.name,
-    #                            "mime_type": "audio/mp3"}})
+    for mp3_bytes in speaking(audio_buffer_1.getvalue(), citations_str):
+        output_buffer += mp3_bytes
+        yield mp3_bytes, state
+
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+        f.write(output_buffer)
+    
+    state.conversation.append({"role": "assistant",
+                    "content": {"path": f.name,
+                                "mime_type": "audio/mp3"}})
+    
     yield None, AppState(conversation=state.conversation)
 
 
