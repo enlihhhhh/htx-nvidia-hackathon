@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 import os
 from server import serve
 
-from stt import call_stt_parakeet
+from stt import stt_client
 
 load_dotenv()
 
@@ -52,14 +52,22 @@ OUT_CHANNELS = 1
 
 SAMPLE_RATE = 16000
 
-# TODO <Ros>: Reimplement but using the new client wrapper
+# STT Client
+STT_API_KEY = os.environ.get("RIVA_API_KEY") 
+
 def riva_client(wav_file: str) -> str:
-    api_key = os.environ.get("RIVA_API_KEY")
-    print(f"RIVA API KEY: {api_key}")
-    audio = wav_file
-    riva_client_path = "stt/stt_client.py"
-    transcript = call_stt_parakeet.riva_offline_transcribe(audio, api_key, riva_client_path)
-    return transcript
+    """
+    wav_file (str): file path of the audio (linear PCM 16K mono channel .wav)
+    """
+    client = stt_client.ParakeetSTTClient(
+        input_file=wav_file,
+        api_key=STT_API_KEY
+    )
+
+    transcription = client.transcribe()
+    
+    return transcription
+
 
 def run_vad(ori_audio, sr): # Voice Activity detection
     _st = time.time()
@@ -157,9 +165,6 @@ def speaking(audio_bytes: str): # Send base encoded audio bytes to model
         except Exception as e:
             raise gr.Error(f"Error during audio streaming: {e}")
 
-
-
-
 def process_audio(audio: tuple, state: AppState):
     if state.stream is None:
         state.stream = audio[1]
@@ -173,7 +178,6 @@ def process_audio(audio: tuple, state: AppState):
     if state.pause_detected and state.started_talking:
         return gr.Audio(recording=False), state
     return None, state
-
 
 def response(state: AppState):
     if not state.pause_detected and not state.started_talking:
@@ -200,6 +204,7 @@ def response(state: AppState):
     
     transcript = riva_client(wav_file=f.name)
 
+    # TODO: At the moment it just returns the trancript
     state.conversation.append({
         "role": "assistant",
         "content": transcript

@@ -1,0 +1,89 @@
+# Use this when deploying locally using NVIDIA's nim
+#python3 python-clients/scripts/asr/transcribe_file_offline.py --server 0.0.0.0:50051 \
+#   --language-code en-US --word-time-offsets --automatic-punctuation \
+#   --input-file <path_to_speech_file> 
+# List available models. (default: False)
+list_models: false
+
+# Output seglst file for speaker diarization. (default: False)
+output_seglst: false
+
+# URI to GRPC server endpoint. (default: localhost:50051)
+server: "0.0.0.0:50051"
+
+# Path to SSL root certificates file. (default: None)
+ssl_root_cert: null
+
+# Path to SSL client certificates file. (default: None)
+ssl_client_cert: null
+
+# Path to SSL client key file. (default: None)
+ssl_client_key: null
+
+# Boolean to control if SSL/TLS encryption should be used. (default: False)
+use_ssl: false
+
+# Send HTTP Header(s) to server (default: false)
+metadata: false
+
+# Send GRPC options to server (default: None)
+options: null
+
+# Maximum message length for GRPC server. (default: 67108864)
+max_message_length: 67108864
+
+# Option to output word timestamps. (default: False)
+word_time_offsets: true
+
+# Maximum number of alternative transcripts to return (up to limit configured on server). (default: 1)
+max_alternatives: 1
+
+# Flag that controls the profanity filtering in the generated transcripts (default: False)
+profanity_filter: false
+
+# Flag that controls if transcript should be automatically punctuated (default: False)
+automatic_punctuation: true
+
+# If specified, text inverse normalization will be applied (default: False)
+no_verbatim_transcripts: false
+
+# Language code of the model to be used. (default: en-US)
+language_code: "en-US"
+
+# Model name to be used. (default: )
+model_name: null
+
+# Words to boost when decoding. Can be used multiple times to boost multiple words. (default: None)
+# [List[str]]
+boosted_lm_words: null
+
+# Recommended range for the boost score is 20 to 100. The higher the boost score, 
+# the more biased the ASR engine is towards this word. (default: 4.0)
+boosted_lm_score: 4.0
+
+# Flag that controls if speaker diarization should be performed (default: False)
+speaker_diarization: false
+
+# Max number of speakers to detect when performing speaker diarization (default: 3)
+diarization_max_speakers: 3
+
+# Value (in milliseconds) to detect and initiate start of speech utterance (default: -1)
+start_history: -1
+
+# Threshold value for detecting the start of speech utterance (default: -1.0)
+start_threshold: -1.0
+
+# Value (in milliseconds) to detect end of utterance and reset decoder (default: -1)
+stop_history: -1
+
+# Threshold value for detecting the end of speech utterance (default: -1.0)
+stop_threshold: -1.0
+
+# Value (in milliseconds) to detect end of utterance for the 1st pass and generate an intermediate final transcript (default: -1)
+stop_history_eou: -1
+
+# Threshold value for likelihood of blanks before detecting end of utterance (default: -1.0)
+stop_threshold_eou: -1.0
+
+# Custom configurations to be sent to the server as key value pairs of string format "key:value,key:value,..."" (default: )
+custom_configuration: ""
