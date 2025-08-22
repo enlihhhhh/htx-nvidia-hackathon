@@ -11,9 +11,10 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 device = "cuda" if torch.cuda.is_available() else "cpu" 
-kimi_model_path = os.path.join("/home/htx-team3/", "models/Kimi-Audio-7B-Instruct")
+# kimi_model_path = os.path.join("/home/htx-team3/", "models/Kimi-Audio-7B-Instruct")
+kimi_model_path = "/home/htx-team3/Kimi-Audio/output/Kimi-Audio-7B-Trial-v2"
 repo_id = "moonshotai/Kimi-Audio-7B-Instruct"
-print(kimi_model_path)
+print("Using model_path:", kimi_model_path)
 
 
 class KimiChatServer(object):
@@ -62,7 +63,7 @@ class KimiChatServer(object):
                 {
                     "role": "user",
                     "message_type": "text",
-                    "content": f"You are a professional helpful assistant, helping your user answer queries based on the information you know.\nAnswer the spoken query to the best of your abilities in just ONE sentence. If context is provided, use the pieces of retrieved context to answer the question. If the user asks you a question you do not know the answer to, please acknowledge that you do not have an answer.\nSTRICTLY answer to your user in English ONLY.\n\n CONTEXT:{citations_text}\n ",
+                    "content": f"You are a professional helpful assistant, helping your user answer queries based on the information you know.\nAnswer the spoken query to the best of your abilities in just ONE sentence. If context is provided, use the pieces of retrieved context to answer the question. Try to understand the speaker's emotion, empathize with it and then reply to the question. If the user asks you a question you do not know the answer to, please acknowledge that you do not have an answer.\nSTRICTLY answer to your user in English ONLY. \n\n CONTEXT:{citations_text}\n",
                 },
                 {
                     "role": "user",
@@ -72,17 +73,32 @@ class KimiChatServer(object):
             ]
             
             # Sampling parameters
+
+            # For fine-tuned model
             sampling_params = {
-                "audio_temperature": 0.8,
+                "audio_temperature": 0.1,
                 "audio_top_k": 10,
                 "text_temperature": 0.0,
                 "text_top_k": 5,
-                "audio_repetition_penalty": 1.5,
+                "audio_repetition_penalty": 1.0,
                 "audio_repetition_window_size": 64,
-                "text_repetition_penalty": 1.5,
+                "text_repetition_penalty": 1.0,
                 "text_repetition_window_size": 16,
-                "max_new_tokens": 256,
+                "max_new_tokens": 256
             }
+
+            # For base model
+            # sampling_params = {
+            #     "audio_temperature": 0.8,
+            #     "audio_top_k": 10,
+            #     "text_temperature": 0.0,
+            #     "text_top_k": 5,
+            #     "audio_repetition_penalty": 1.5,
+            #     "audio_repetition_window_size": 64,
+            #     "text_repetition_penalty": 1.5,
+            #     "text_repetition_window_size": 16,
+            #     "max_new_tokens": 256,
+            # }
 
             output_wav, output_text = self.client.generate(
                 messages,

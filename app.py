@@ -218,17 +218,21 @@ def response(state: AppState):
     transcript = riva_client(wav_file=f.name)
     print(transcript)
 
-    citations = rag.search(
-        query=transcript,
-        collection_names=[docs_lib],
-        reranker_top_k=1,
-        vdb_top_k=100,
-        # embedding_endpoint="http://localhost:9080/v1",
-        # embedding_model="nvidia/llama-3.2-nv-embedqa-1b-v2",
-        # reranker_endpoint="http://localhost:1976/v1",
-        # [Optional]: Uncomment to filter the documents based on the metadata, ensure that the metadata schema is created with the same fields with create_collection
-        # filter_expr='content_metadata["meta_field_1"] == "multimodal document 1"'
-    )
+    try:
+        citations = rag.search(
+            query=transcript,
+            collection_names=[docs_lib],
+            reranker_top_k=1,
+            vdb_top_k=100,
+            # embedding_endpoint="http://localhost:9080/v1",
+            # embedding_model="nvidia/llama-3.2-nv-embedqa-1b-v2",
+            # reranker_endpoint="http://localhost:1976/v1",
+            # [Optional]: Uncomment to filter the documents based on the metadata, ensure that the metadata schema is created with the same fields with create_collection
+            # filter_expr='content_metadata["meta_field_1"] == "multimodal document 1"'
+        )
+    except Exception as e:
+        print("RAG failed")
+        citations = None
 
     if not citations or not hasattr(citations, 'results') or not citations.results:
         citations_str = "No citations found."
