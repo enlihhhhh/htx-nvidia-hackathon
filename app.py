@@ -13,8 +13,8 @@ import librosa
 from utils.vad import get_speech_timestamps, collect_chunks, VadOptions
 import tempfile
 from typing import Optional
-
-
+from dotenv import load_dotenv
+import os
 from server import serve
 from nvidia_rag import NvidiaRAG, NvidiaRAGIngestor
 
@@ -24,9 +24,13 @@ ingestor = NvidiaRAGIngestor()
 docs_lib = "docs_lib"
 milvus_db_url = "http://localhost:19530"
 
+from stt import stt_client
+
+load_dotenv()
+
 # Ros: Downloads pre trained model from HF, saved locally
 repo_id = "gpt-omni/mini-omni"
-snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
+#snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
 
 IP = "0.0.0.0"
 PORT = 60808
@@ -52,6 +56,24 @@ OUT_CHUNK = 5760
 OUT_CHUNK = 20 * 4096
 OUT_RATE = 24000
 OUT_CHANNELS = 1
+
+SAMPLE_RATE = 16000
+
+# STT Client
+STT_API_KEY = os.environ.get("RIVA_API_KEY") 
+
+def riva_client(wav_file: str) -> str:
+    """
+    wav_file (str): file path of the audio (linear PCM 16K mono channel .wav)
+    """
+    client = stt_client.ParakeetSTTClient(
+        input_file=wav_file,
+        api_key=STT_API_KEY
+    )
+
+    transcription = client.transcribe()
+    
+    return transcription
 
 
 def run_vad(ori_audio, sr): # Voice Activity detection
@@ -150,9 +172,6 @@ def speaking(audio_bytes: str): # Send base encoded audio bytes to model
         except Exception as e:
             raise gr.Error(f"Error during audio streaming: {e}")
 
-
-
-
 def process_audio(audio: tuple, state: AppState):
     if state.stream is None:
         state.stream = audio[1]
@@ -167,7 +186,6 @@ def process_audio(audio: tuple, state: AppState):
         return gr.Audio(recording=False), state
     return None, state
 
-
 def response(state: AppState):
     if not state.pause_detected and not state.started_talking:
         return None, AppState()
@@ -180,6 +198,8 @@ def response(state: AppState):
         sample_width=state.stream.dtype.itemsize,
         channels=(1 if len(state.stream.shape) == 1 else state.stream.shape[1]),
     )
+    segment = segment.set_frame_rate(SAMPLE_RATE)
+    segment = segment.set_channels(1)
     segment.export(audio_buffer, format="wav")
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -189,18 +209,24 @@ def response(state: AppState):
                                 "content": {"path": f.name,
                                 "mime_type": "audio/wav"}})
     
-    output_buffer = b""
+    transcript = riva_client(wav_file=f.name)
 
-    for mp3_bytes in speaking(audio_buffer.getvalue()):
-        output_buffer += mp3_bytes
-        yield mp3_bytes, state
+    # TODO: At the moment it just returns the trancript
+    state.conversation.append({
+        "role": "assistant",
+        "content": transcript
+    })
 
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-        f.write(output_buffer)
+    #for mp3_bytes in speaking(audio_buffer.getvalue()):
+    #    output_buffer += mp3_bytes
+    #    yield mp3_bytes, state
+
+    #with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+    #    f.write(output_buffer)
     
-    state.conversation.append({"role": "assistant",
-                    "content": {"path": f.name,
-                                "mime_type": "audio/mp3"}})
+    #state.conversation.append({"role": "assistant",
+    #                "content": {"path": f.name,
+    #                            "mime_type": "audio/mp3"}})
     yield None, AppState(conversation=state.conversation)
 
 
